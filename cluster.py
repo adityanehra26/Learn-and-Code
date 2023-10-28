@@ -1,34 +1,65 @@
-from basic import BasicListFunctions
 
 class Cluster:
-
     def __init__(self):
         self.locations = []
-        self.cluster_range = [0,0]
-
-    def add_location(self, location_name, latitude, longitude, latitude_degree):
-        if(BasicListFunctions.length_of_list(self.locations) == 0):
-                range_start = latitude_degree//10
-                if(range_start%2==0):
-                     range_start = range_start*10
-                else:
-                     range_start = (range_start-1)*10
-                self.cluster_range[0] = range_start
-                self.cluster_range[1] = range_start+20
-        
-        self.locations.append((location_name, latitude, longitude))
+        self.center_latitude = 0.0
 
     def get_locations(self):
         return self.locations
-    
-    def show_formatted_location(self):
+
+    def add_location(self, location):
+        self.locations.append(location)
+
+    def show_locations(self):
+        number = 1
         for location in self.locations:
-            print(location)
+            print(f"{number}: {location}")
+            number += 1
 
     @staticmethod
-    def cluster_finder(clusters, latitude):
-        for index in range(BasicListFunctions.length_of_list(clusters)):
-            cluster = clusters[index]
-            if cluster.cluster_range[1] > latitude and cluster.cluster_range[0] <= latitude:
-                return index
-        return -1
+    def haversine_distance(lat1, lat2):
+        # Radius of the Earth in degrees of latitude (approximately 111.32 km per degree)
+        earth_radius_deg = 111.32
+
+        # Calculate the distance in degrees of latitude
+        distance = abs(lat1 - lat2)
+        return distance * earth_radius_deg
+
+    @staticmethod
+    def cluster_creator(locations, max_distance_deg):
+        clusters = []
+
+        for location in locations:
+            nearest_cluster = False # False means no nearest cluster found
+
+            for cluster in clusters:
+                distance = Cluster.haversine_distance(location['Latitude'], cluster.center_latitude)
+
+                if distance <= max_distance_deg:
+                    nearest_cluster = cluster
+
+            if nearest_cluster:
+                nearest_cluster.add_location(location)
+            else:
+                new_cluster = Cluster()
+                new_cluster.center_latitude = location['Latitude']
+                new_cluster.add_location(location)
+                clusters.append(new_cluster)
+
+        return clusters
+
+# Example usage
+if __name__ == "__main__":
+    locations = [
+        {'City Name': 'Vatican City', 'Latitude': 41.9, 'Longitude': 12.45},
+        {'City Name': 'Same coordinate City', 'Latitude': 41.9, 'Longitude': 12.45},
+        {'City Name': 'Tegucigalpa', 'Latitude': 14.1, 'Longitude': -87.216667},
+        {'City Name': 'Kabul2', 'Latitude': 14.1, 'Longitude': -87.2183333},
+        {'City Name': 'Kabul', 'Latitude': 84.5166666666666, 'Longitude': 69.183333}
+    ]
+
+    max_distance_deg = 10.0
+    clusters = Cluster.cluster_creator(locations, max_distance_deg)
+    for i, cluster in enumerate(clusters):
+        print(f"Cluster {i + 1}:")
+        cluster.show_locations()
